@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة الغرف الذكية | متجاوب بالكامل</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary-color: #00b4d8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        
+        body { 
+            background: var(--bg-gradient); 
+            color: var(--text-main); 
+            min-height: 100vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 5vh 5vw; /* استخدام الأبعاد النسبية لتناسب شاشات اللاب والموبايل */
+        }
+        
+        .main-card { 
+            background: var(--card-bg); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            padding: 40px 30px; 
+            border-radius: 24px; 
+            width: 100%; 
+            max-width: 500px; /* الحد الأقصى للعرض على التاب واللابتوب */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); 
+            text-align: center;
+        }
+        
+        /* ضبط حجم الخطوط ليتناسب مع كل الشاشات */
+        h1 { font-size: calc(1.5rem + 1vw); margin-bottom: 12px; }
+        h1 span { color: var(--primary-color); }
+        p { color: var(--text-muted); margin-bottom: 30px; font-size: calc(0.9rem + 0.2vw); line-height: 1.6; }
+        
+        input { 
+            width: 100%; 
+            padding: 16px 20px; 
+            background: rgba(15, 23, 42, 0.6); 
+            border: 2px solid #334155; 
+            border-radius: 12px; 
+            color: #fff; 
+            font-size: 1.1rem; 
+            outline: none; 
+            text-align: center; 
+            margin-bottom: 20px; 
+            transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(0, 180, 216, 0.15); }
+        
+        .action-btn { 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--primary-color); 
+            color: #fff; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: 0.2s; 
+        }
+        .action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        .alert-box { margin-top: 20px; padding: 15px 20px; border-radius: 12px; font-size: 0.95rem; display: none; }
+        .alert-danger { background: rgba(230, 57, 70, 0.15); color: #ff4d5a; border: 1px solid rgba(230, 57, 70, 0.3); }
+        .alert-success { background: rgba(46, 196, 182, 0.15); color: #26e6d3; border: 1px solid rgba(46, 196, 182, 0.3); }
+
+        /* Media Queries لتحسين العرض على الموبايلات الصغيرة جداً */
+        @media (max-width: 380px) {
+            .main-card { padding: 25px 15px; }
+            input, .action-btn { padding: 12px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-card">
+    <h1>منصة <span>الغرف الذكية</span></h1>
+    <p>أنشئ نظام التحكم الخاص ببابك الآن لحماية خصوصيتك وفصل البيانات بالكامل.</p>
+    
+    <input type="text" id="roomName" placeholder="اكتب اسم غرفتك (مثال: suite102)" autocomplete="off" required>
+    <button class="action-btn" onclick="processRoomExecution()">تحقق وابدأ التشغيل الآن ←</button>
+
+    <div id="feedbackConsole" class="alert-box"></div>
+</div>
+
+<script>
+    const firebaseConfiguration = {
+        apiKey: "YOUR_API_KEY_HERE",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID_HERE",
+        appId: "YOUR_APP_ID_HERE"
+    };
+    
+    firebase.initializeApp(firebaseConfiguration);
+    const globalDatabaseInstance = firebase.database();
+
+    function processRoomExecution() {
+        const rawInput = document.getElementById('roomName').value;
+        const processedRoomId = rawInput.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+        
+        if(processedRoomId === "") {
+            renderConsoleMessage("خطأ: يرجى كتابة اسم معرف صالح للغرفة.", "danger");
+            return;
+        }
+
+        renderConsoleMessage("جاري فحص خوادم السحابة والتأكد من توافر الاسم...", "success");
+
+        globalDatabaseInstance.ref('all_rooms/' + processedRoomId).once('value', (dataSnapshot) => {
+            if (dataSnapshot.exists()) {
+                renderConsoleMessage("الاسم محجوز مسبقاً! جاري نقلك كمالك للغرفة...", "success");
+                setTimeout(() => {
+                    window.location.href = "room.html?id=" + processedRoomId + "&role=owner";
+                }, 1500);
+            } else {
+                globalDatabaseInstance.ref('all_rooms/' + processedRoomId).set({
+                    timestamp: Date.now(),
+                    current_status: 'stable',
+                    guest_name: 'none'
+                }, (error) => {
+                    if (error) {
+                        renderConsoleMessage("فشل الحجز: " + error.message, "danger");
+                    } else {
+                        renderConsoleMessage("🎉 تم الحجز بنجاح! جاري تشغيل الغرفة...", "success");
+                        setTimeout(() => {
+                            window.location.href = "room.html?id=" + processedRoomId + "&role=owner";
+                        }, 1500);
+                    }
+                });
+            }
+        });
+    }
+
+    function renderConsoleMessage(msgText, msgType) {
+        const consoleWidget = document.getElementById('feedbackConsole');
+        consoleWidget.className = `alert-box alert-${msgType}`;
+        consoleWidget.innerHTML = msgText;
+        consoleWidget.style.display = "block";
+    }
+</script>
+</body>
+</html>
